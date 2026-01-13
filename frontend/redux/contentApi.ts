@@ -7,6 +7,7 @@ import type {
     GenerateContentRequest,
     GenerateContentResponse,
     JobStatusResponse,
+    UpdateContentRequest,
 } from "./contentTypes";
 
 export interface CreateContentRequest {
@@ -31,6 +32,14 @@ export const contentApi = baseApi.injectEndpoints({
                 url: "/api/content",
                 method: "POST",
                 body,
+            }),
+            invalidatesTags: ["Content"],
+        }),
+        updateContent: builder.mutation<ContentItem, { id: string; data: UpdateContentRequest }>({
+            query: ({ id, data }) => ({
+                url: `/api/content/${id}`,
+                method: "PUT",
+                body: data,
             }),
             invalidatesTags: ["Content"],
         }),
@@ -65,6 +74,7 @@ export const {
     useListContentQuery,
     useGetContentByIdQuery,
     useCreateContentMutation,
+    useUpdateContentMutation,
     useDeleteContentMutation,
     useGenerateContentMutation,
     useGetJobStatusQuery,

@@ -31,3 +31,8 @@ export interface JobStatusResponse {
     error?: string;
     content: ContentItem | null;
 }
+
+export interface UpdateContentRequest {
+    title: string;
+    body: string;
+}
