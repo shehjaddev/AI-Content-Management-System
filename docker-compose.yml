@@ -10,3 +10,13 @@ services:
       - PORT=4000
     ports:
       - "4000:4000"
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://backend:4000
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
