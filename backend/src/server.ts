@@ -31,10 +31,12 @@ mongoose
         console.error('MongoDB connection error', err);
     });
 
-const PORT = process.env.PORT || 4000;
+if (process.env.NODE_ENV !== 'test') {
+    const PORT = process.env.PORT || 4000;
 
-app.listen(PORT, () => {
-    console.log(`Backend server listening on port ${PORT}`);
-});
+    app.listen(PORT, () => {
+        console.log(`Backend server listening on port ${PORT}`);
+    });
+}
 
 export default app;

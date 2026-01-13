@@ -10,7 +10,8 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "jest --runInBand",
+    "test": "NODE_ENV=test jest --runInBand src/modules",
+    "test:integration": "NODE_ENV=test jest --runInBand src/tests",
     "worker": "ts-node-dev --respawn --transpile-only src/worker.ts"
   },
   "dependencies": {
