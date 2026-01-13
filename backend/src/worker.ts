@@ -1,9 +1,10 @@
 import { Job as BullJob, Worker } from 'bullmq';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import { Content } from './modules/content/content.model';
+import { Content, ContentType } from './modules/content/content.model';
 import { Job } from './modules/content/job.model';
 import { GenerateJobData } from './queue/generateQueue';
+import { analyzeSentiment, generateContent } from './services/aiService';
 
 dotenv.config();
 
@@ -31,16 +32,16 @@ const worker = new Worker<GenerateJobData>(
         }
 
         try {
-            const title = `Generated ${contentType} for user`;
-            const body = `Generated content based on prompt: ${prompt}`;
+            const generated = await generateContent(prompt, contentType as ContentType);
+            const sentiment = await analyzeSentiment(generated.body);
 
             const content = await Content.create({
                 user: userId,
-                title,
-                type: contentType as any,
+                title: generated.title,
+                type: contentType,
                 prompt,
-                body,
-                sentiment: 'neutral',
+                body: generated.body,
+                sentiment,
             });
 
             if (dbJob) {
