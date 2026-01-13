@@ -1,4 +1,6 @@
 import { Content } from './content.model';
+import { Job } from './job.model';
+import { generateQueue } from '../../queue/generateQueue';
 
 export const createContent = async (userId: string, data: any) => {
     const { title, type, prompt, body } = data;
@@ -28,4 +30,23 @@ export const updateContent = async (userId: string, id: string, data: any) => {
 
 export const deleteContent = async (userId: string, id: string) => {
     return Content.findOneAndDelete({ _id: id, user: userId });
+};
+
+export const enqueueGenerateJob = async (userId: string, prompt: string, contentType: string) => {
+    const jobRecord = await Job.create({
+        user: userId,
+        contentType,
+        prompt,
+        status: 'pending',
+    });
+
+    const delayMs = 60000;
+
+    const job = await generateQueue.add(
+        'generate-content-job',
+        { userId, prompt, contentType },
+        { delay: delayMs, jobId: jobRecord.id }
+    );
+
+    return { jobId: job.id, delayMs };
 };

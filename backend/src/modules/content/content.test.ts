@@ -1,9 +1,19 @@
-import { createContent, listContent, getContentById, updateContent, deleteContent } from './content.service';
+import { createContent, listContent, getContentById, updateContent, deleteContent, enqueueGenerateJob } from './content.service';
 import { Content } from './content.model';
+import { Job } from './job.model';
+import { generateQueue } from '../../queue/generateQueue';
 
 jest.mock('./content.model');
+jest.mock('./job.model');
+jest.mock('../../queue/generateQueue', () => ({
+    generateQueue: {
+        add: jest.fn(),
+    },
+}));
 
 const mockedContent = Content as jest.Mocked<typeof Content>;
+const mockedJob = Job as jest.Mocked<typeof Job>;
+const mockedQueue = generateQueue as unknown as { add: jest.Mock };
 
 describe('content.service', () => {
     const userId = 'user123';
@@ -78,5 +88,27 @@ describe('content.service', () => {
 
         expect(mockedContent.findOneAndDelete).toHaveBeenCalledWith({ _id: 'cid', user: userId });
         expect(result).toBe('deleted');
+    });
+
+    it('enqueueGenerateJob creates Job record and enqueues bullmq job with delay', async () => {
+        (mockedJob.create as any).mockResolvedValue({ id: 'job-record-id' });
+        mockedQueue.add.mockResolvedValue({ id: 'bull-job-id' });
+
+        const result = await enqueueGenerateJob(userId, 'Prompt text', 'blog_outline');
+
+        expect(mockedJob.create).toHaveBeenCalledWith({
+            user: userId,
+            contentType: 'blog_outline',
+            prompt: 'Prompt text',
+            status: 'pending',
+        });
+
+        expect(mockedQueue.add).toHaveBeenCalledWith(
+            'generate-content-job',
+            { userId, prompt: 'Prompt text', contentType: 'blog_outline' },
+            { delay: 60000, jobId: 'job-record-id' }
+        );
+
+        expect(result).toEqual({ jobId: 'bull-job-id', delayMs: 60000 });
     });
 });
