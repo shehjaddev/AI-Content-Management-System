@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import { createServer } from 'http';
+import { setupSocketAndQueueEvents } from './socket';
 import authRouter from './modules/auth/auth.routes';
 import contentRouter from './modules/content/content.routes';
 import jobsRouter from './modules/jobs/job.routes';
@@ -33,8 +35,11 @@ mongoose
 
 if (process.env.NODE_ENV !== 'test') {
     const PORT = process.env.PORT || 4000;
+    const httpServer = createServer(app);
 
-    app.listen(PORT, () => {
+    setupSocketAndQueueEvents(httpServer);
+
+    httpServer.listen(PORT, () => {
         console.log(`Backend server listening on port ${PORT}`);
     });
 }

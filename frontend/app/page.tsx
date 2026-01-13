@@ -11,6 +11,7 @@ import {
   useUpdateContentMutation,
 } from "@/redux/contentApi";
 import { useEffect, useMemo, useState } from "react";
+import { io, type Socket } from "socket.io-client";
 import type { ContentType } from "@/redux/contentTypes";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { TopBar } from "@/components/dashboard/TopBar";
@@ -21,6 +22,9 @@ export default function Home() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const email = useAppSelector((state) => state.auth.userEmail);
+
+  type JobUpdateMode = "auto" | "socket" | "polling";
+  const [jobUpdateMode, setJobUpdateMode] = useState<JobUpdateMode>("auto");
 
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
@@ -54,6 +58,7 @@ export default function Home() {
   const [genPrompt, setGenPrompt] = useState("");
   const [genType, setGenType] = useState<ContentType>("blog_outline");
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   const {
     data: jobStatus,
@@ -61,8 +66,38 @@ export default function Home() {
     refetch: refetchJobStatus,
   } = useGetJobStatusQuery(currentJobId ?? "", {
     skip: !currentJobId,
-    pollingInterval: currentJobId ? 3000 : 0,
+    pollingInterval: jobUpdateMode === "socket" ? 0 : currentJobId ? 3000 : 0,
   });
+
+  useEffect(() => {
+    const SOCKET_URL =
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
+    const s = io(SOCKET_URL);
+    setSocket(s);
+
+    return () => {
+      s.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!socket || !currentJobId || jobUpdateMode === "polling") return;
+
+    const handleJobUpdate = (payload: { jobId: string; status: string }) => {
+      if (payload.jobId !== currentJobId) return;
+
+      void refetchContent();
+      void refetchJobStatus();
+      setCurrentJobId(null);
+    };
+
+    socket.on("jobUpdate", handleJobUpdate);
+
+    return () => {
+      socket.off("jobUpdate", handleJobUpdate);
+    };
+  }, [socket, currentJobId, jobUpdateMode, refetchContent, refetchJobStatus]);
 
   const latestGenerated = useMemo(
     () =>
@@ -175,6 +210,20 @@ export default function Home() {
 
         {/* Content + editor */}
         <main className="flex-1 flex flex-col">
+          <div className="flex items-center justify-end px-4 pt-2 gap-2 text-[11px] text-gray-600">
+            <span>Job updates:</span>
+            <select
+              value={jobUpdateMode}
+              onChange={(e) =>
+                setJobUpdateMode(e.target.value as JobUpdateMode)
+              }
+              className="border rounded px-1 py-0.5 text-[11px] bg-white cursor-pointer"
+            >
+              <option value="auto">Auto (Socket + Polling)</option>
+              <option value="socket">Socket only</option>
+              <option value="polling">Polling only</option>
+            </select>
+          </div>
           {selectedContent ? (
             <ContentPanel
               item={selectedContent}
