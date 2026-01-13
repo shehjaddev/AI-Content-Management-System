@@ -65,13 +65,15 @@ export default function LoginPage() {
           />
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          className="w-full bg-black text-white rounded py-2 text-sm disabled:opacity-60 cursor-pointer"
-          disabled={loading}
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
+        <div className="flex justify-center">
+          <button
+            type="submit"
+            className="rounded px-4 py-1 text-sm border disabled:opacity-60 cursor-pointer"
+            disabled={loading}
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
+        </div>
         <p className="text-xs text-gray-600">
           Need an account?{" "}
           <button

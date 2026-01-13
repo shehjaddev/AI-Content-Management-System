@@ -3,39 +3,196 @@
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { clearAuth } from "@/redux/authSlice";
 import { useRouter } from "next/navigation";
+import {
+  useListContentQuery,
+  useDeleteContentMutation,
+  useGenerateContentMutation,
+  useGetJobStatusQuery,
+  useUpdateContentMutation,
+} from "@/redux/contentApi";
+import { useEffect, useMemo, useState } from "react";
+import type { ContentType } from "@/redux/contentTypes";
+import { Sidebar } from "@/components/dashboard/Sidebar";
+import { TopBar } from "@/components/dashboard/TopBar";
+import { ContentPanel } from "@/components/dashboard/ContentPanel";
+import { PromptBar } from "@/components/dashboard/PromptBar";
 
 export default function Home() {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const userId = useAppSelector((state) => state.auth.userId);
   const email = useAppSelector((state) => state.auth.userEmail);
+
+  const {
+    data: contentItems,
+    isLoading: isContentLoading,
+    isError: isContentError,
+  } = useListContentQuery();
+
+  const [deleteContent, { isLoading: isDeleting }] = useDeleteContentMutation();
+  const [generateContent, { isLoading: isGenerating }] =
+    useGenerateContentMutation();
+  const [updateContent, { isLoading: isUpdating }] = useUpdateContentMutation();
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [genPrompt, setGenPrompt] = useState("");
+  const [genType, setGenType] = useState<ContentType>("blog_outline");
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+
+  const {
+    data: jobStatus,
+    isFetching: isJobPolling,
+    refetch: refetchJobStatus,
+  } = useGetJobStatusQuery(currentJobId ?? "", {
+    skip: !currentJobId,
+    pollingInterval: currentJobId ? 3000 : 0,
+  });
+
+  const latestGenerated = useMemo(
+    () =>
+      jobStatus?.content && jobStatus.status === "completed"
+        ? jobStatus.content
+        : null,
+    [jobStatus]
+  );
+
+  const selectedContent = useMemo(
+    () => contentItems?.find((item) => item._id === selectedId) ?? null,
+    [contentItems, selectedId]
+  );
+
+  useEffect(() => {
+    if (selectedContent) {
+      setEditTitle(selectedContent.title ?? "");
+      setEditBody(selectedContent.body ?? "");
+      setIsEditing(false);
+    } else {
+      setEditTitle("");
+      setEditBody("");
+      setIsEditing(false);
+    }
+  }, [selectedContent]);
+
+  useEffect(() => {
+    if (latestGenerated && latestGenerated._id) {
+      setSelectedId(latestGenerated._id);
+    }
+  }, [latestGenerated]);
 
   const handleLogout = () => {
     dispatch(clearAuth());
     router.push("/login");
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteContent(id).unwrap();
+      if (selectedId === id) {
+        setSelectedId(null);
+      }
+    } catch (err) {
+      console.error("Delete content failed", err);
+    }
+  };
+
+  const handleGenerateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!genPrompt) return;
+    try {
+      const res = await generateContent({
+        prompt: genPrompt,
+        contentType: genType,
+      }).unwrap();
+      setCurrentJobId(res.jobId);
+      setGenPrompt("");
+      void refetchJobStatus();
+    } catch (err) {
+      console.error("Generate content failed", err);
+    }
+  };
+
+  const handleSaveEdits = async () => {
+    if (!selectedContent) return;
+    try {
+      await updateContent({
+        id: selectedContent._id,
+        data: { title: editTitle, body: editBody },
+      }).unwrap();
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Update content failed", err);
+    }
+  };
+
+  const handleNewContent = () => {
+    setSelectedId(null);
+    setEditTitle("");
+    setEditBody("");
+    setCurrentJobId(null);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-black">
-      <main className="w-full max-w-3xl rounded-md bg-white dark:bg-zinc-900 p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold mb-4 text-black dark:text-zinc-50">
-          Dashboard
-        </h1>
-        <p className="text-sm text-zinc-700 dark:text-zinc-300 mb-2">
-          You are logged in.
-        </p>
-        {userId && (
-          <p className="text-xs text-zinc-500 mb-1">User ID: {userId}</p>
-        )}
-        {email && <p className="text-xs text-zinc-500 mb-4">Email: {email}</p>}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="mt-2 inline-flex items-center rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 cursor-pointer"
-        >
-          Logout
-        </button>
-      </main>
+    <div className="flex min-h-screen">
+      {/* Sidebar: history */}
+      <Sidebar
+        items={contentItems}
+        selectedId={selectedId}
+        isLoading={isContentLoading}
+        isError={isContentError}
+        onSelect={(id) => setSelectedId(id)}
+        onNewContent={handleNewContent}
+      />
+
+      {/* Main area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top bar */}
+        <TopBar email={email} onLogout={handleLogout} />
+
+        {/* Content + editor */}
+        <main className="flex-1 flex flex-col">
+          {selectedContent ? (
+            <ContentPanel
+              item={selectedContent}
+              editTitle={editTitle}
+              editBody={editBody}
+              isEditing={isEditing}
+              isUpdating={isUpdating}
+              isDeleting={isDeleting}
+              onEditTitleChange={setEditTitle}
+              onEditBodyChange={setEditBody}
+              onStartEdit={() => setIsEditing(true)}
+              onSave={handleSaveEdits}
+              onCancelEdit={() => {
+                setIsEditing(false);
+                if (selectedContent) {
+                  setEditTitle(selectedContent.title ?? "");
+                  setEditBody(selectedContent.body ?? "");
+                }
+              }}
+              onDelete={() => {
+                if (selectedContent) {
+                  void handleDelete(selectedContent._id);
+                }
+              }}
+            />
+          ) : (
+            <PromptBar
+              genType={genType}
+              genPrompt={genPrompt}
+              isGenerating={isGenerating}
+              currentJobId={currentJobId}
+              jobStatus={jobStatus}
+              isJobPolling={isJobPolling}
+              onGenTypeChange={(t) => setGenType(t)}
+              onGenPromptChange={(v) => setGenPrompt(v)}
+              onSubmit={handleGenerateSubmit}
+            />
+          )}
+        </main>
+      </div>
     </div>
   );
 }
