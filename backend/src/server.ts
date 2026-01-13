@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import authRouter from './modules/auth/auth.routes';
 
 dotenv.config();
 
@@ -12,8 +14,23 @@ app.get('/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok' });
 });
 
+app.use('/api/auth', authRouter);
+
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ai_content_db';
+
+mongoose
+    .connect(MONGO_URI)
+    .then(() => {
+        console.log('Connected to MongoDB');
+    })
+    .catch((err) => {
+        console.error('MongoDB connection error', err);
+    });
+
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
     console.log(`Backend server listening on port ${PORT}`);
 });
+
+export default app;
