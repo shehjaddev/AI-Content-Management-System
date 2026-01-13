@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import authRouter from './modules/auth/auth.routes';
+import contentRouter from './modules/content/content.routes';
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 app.use('/api/auth', authRouter);
+app.use('/api/content', contentRouter);
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ai_content_db';
 
