@@ -19,8 +19,12 @@ export interface CreateContentRequest {
 
 export const contentApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        listContent: builder.query<ContentItem[], void>({
-            query: () => ({ url: "/api/content", method: "GET" }),
+        listContent: builder.query<ContentItem[], { q?: string } | void>({
+            query: (params) => ({
+                url: "/api/content",
+                method: "GET",
+                params: params?.q ? { q: params.q } : undefined,
+            }),
             providesTags: ["Content"],
         }),
         getContentById: builder.query<ContentItem, string>({

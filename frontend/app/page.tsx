@@ -22,12 +22,24 @@ export default function Home() {
   const router = useRouter();
   const email = useAppSelector((state) => state.auth.userEmail);
 
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      const trimmed = searchInput.trim();
+      setSearchQuery(trimmed ? trimmed : undefined);
+    }, 300);
+
+    return () => clearTimeout(handle);
+  }, [searchInput]);
+
   const {
     data: contentItems,
     isLoading: isContentLoading,
     isError: isContentError,
     refetch: refetchContent,
-  } = useListContentQuery();
+  } = useListContentQuery(searchQuery ? { q: searchQuery } : undefined);
 
   const [deleteContent, { isLoading: isDeleting }] = useDeleteContentMutation();
   const [generateContent, { isLoading: isGenerating }] =
@@ -150,6 +162,8 @@ export default function Home() {
         selectedId={selectedId}
         isLoading={isContentLoading}
         isError={isContentError}
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
         onSelect={(id) => setSelectedId(id)}
         onNewContent={handleNewContent}
       />

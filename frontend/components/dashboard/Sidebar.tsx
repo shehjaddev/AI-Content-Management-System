@@ -7,6 +7,8 @@ interface SidebarProps {
   selectedId: string | null;
   isLoading: boolean;
   isError: boolean;
+  searchValue: string;
+  onSearchChange: (value: string) => void;
   onSelect: (id: string) => void;
   onNewContent: () => void;
 }
@@ -16,6 +18,8 @@ export function Sidebar({
   selectedId,
   isLoading,
   isError,
+  searchValue,
+  onSearchChange,
   onSelect,
   onNewContent,
 }: SidebarProps) {
@@ -38,6 +42,13 @@ export function Sidebar({
         {isError && <p className="text-red-600">Failed to load content.</p>}
         {!isLoading && !isError && (
           <>
+            <input
+              type="text"
+              value={searchValue}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search titles..."
+              className="w-full px-2 py-1 text-xs border rounded outline-none focus:ring-1 focus:ring-violet-500"
+            />
             {items && items.length > 0 ? (
               items.map((item) => {
                 const isActive = selected?._id === item._id;
