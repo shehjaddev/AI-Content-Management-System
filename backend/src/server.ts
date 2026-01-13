@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import authRouter from './modules/auth/auth.routes';
 import contentRouter from './modules/content/content.routes';
+import jobsRouter from './modules/jobs/job.routes';
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/content', contentRouter);
+app.use('/api/jobs', jobsRouter);
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ai_content_db';
 
