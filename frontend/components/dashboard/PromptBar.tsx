@@ -62,7 +62,7 @@ export function PromptBar({
         </form>
         <div className="max-w-3xl mx-auto space-y-2 text-xs text-gray-600 mt-4">
           {currentJobId && (
-            <p>
+            <p className="text-red-600">
               Job {currentJobId}:{" "}
               {jobStatus?.status
                 ? jobStatus.status.charAt(0).toUpperCase() +

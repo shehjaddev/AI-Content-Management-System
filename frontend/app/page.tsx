@@ -26,6 +26,7 @@ export default function Home() {
     data: contentItems,
     isLoading: isContentLoading,
     isError: isContentError,
+    refetch: refetchContent,
   } = useListContentQuery();
 
   const [deleteContent, { isLoading: isDeleting }] = useDeleteContentMutation();
@@ -58,6 +59,13 @@ export default function Home() {
         : null,
     [jobStatus]
   );
+
+  useEffect(() => {
+    if (jobStatus?.status === "completed") {
+      void refetchContent();
+      setCurrentJobId(null);
+    }
+  }, [jobStatus?.status, refetchContent]);
 
   const selectedContent = useMemo(
     () => contentItems?.find((item) => item._id === selectedId) ?? null,
