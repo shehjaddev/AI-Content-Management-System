@@ -16,6 +16,19 @@ services:
     ports:
       - "4000:4000"
 
+  worker:
+    build: ./backend
+    container_name: worker
+    env_file:
+      - ./backend/.env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+    command: npm run worker
+
   frontend:
     build: ./frontend
     container_name: frontend
@@ -36,7 +49,7 @@ services:
       - mongo_data:/data/db
 
   redis:
-    image: redis:7
+    image: redis:7-alpine
     container_name: redis
     restart: always
     ports:
