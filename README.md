@@ -186,10 +186,9 @@ The project is structured as a **backend** (Express + MongoDB + BullMQ) and **fr
 ## 6. Additional Capabilities
 
 - **Deployment**
-
-  - `docker-compose.yml` spins up:
-    - `backend`, `frontend`, `worker`, `mongo`, `redis`.
-  - The service can be deployed to a variety of cloud platforms; see the "Deployment" section for a suggested approach.
+  - Runs via `docker-compose.yml` with services: `backend`, `frontend`, `worker`, `mongo`, `redis`
+  - Deployed on AWS EC2 using Docker Compose + Nginx reverse proxy + Let's Encrypt HTTPS
+  - Live at: https://aicms.shehjad.dev
 
 - **AI Enhancement**
 
@@ -251,8 +250,6 @@ Frontend uses:
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
 ```
-
-(or the backend URL in your deployment environment).
 
 ---
 
@@ -448,25 +445,23 @@ These tests cover, for example:
 
 ## 12. Deployment
 
-This project is designed to run both locally (via Docker or direct Node processes) and in cloud environments.
+This project is deployed on an AWS EC2 instance using Docker Compose:
 
-Suggested approach:
+- AWS EC2 instance with Docker and Docker Compose installed
+- Elastic IP associated with the instance
+- Domain (e.g., shehjad.dev) with an A record pointing the subdomain to the Elastic IP
+- Nginx installed as reverse proxy
+- Let's Encrypt certificate configured via Certbot for HTTPS
 
-1. Build Docker images or use:
-   - **Backend**: Node server (e.g., AWS ECS, Azure Container Apps, Render).
-   - **Worker**: separate container or process with the same image as backend, running `npm run worker`.
-   - **MongoDB**: managed service (Atlas) or container.
-   - **Redis**: managed Redis or container.
-2. Deploy **frontend** (Next.js) to:
-   - Vercel, Netlify, or any Node-capable service.
-3. Configure environment variables on the platform:
-   - `NEXT_PUBLIC_API_BASE_URL` pointing to the backend.
-   - `GEMINI_API_KEY`, `JWT_SECRET`, `MONGO_URI`, `REDIS_URL`.
+### Infrastructure Details
+- **AWS EC2 instance** with Amazon Linux 2023  
+- **Elastic IP** (static public IPv4 address) associated with the instance for reliable access  
+- **Domain A record** pointing the subdomain `aicms` to the Elastic IP (managed via Namecheap Advanced DNS)
 
-Once deployed, update this section with:
-
-- **Live URL** of the frontend.
-- Any platform-specific notes (e.g. reverse proxy, HTTPS, CORS).
+### How to Access
+- **URL**: https://aicms.shehjad.dev  
+- Protocol: HTTPS (secured with Let's Encrypt certificate)  
+- All HTTP requests are automatically redirected to HTTPS  
 
 ---
 
