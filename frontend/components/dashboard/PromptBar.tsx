@@ -8,7 +8,6 @@ interface PromptBarProps {
   isGenerating: boolean;
   currentJobId: string | null;
   jobStatus: JobStatusResponse | undefined;
-  isJobPolling: boolean;
   onGenTypeChange: (type: ContentType) => void;
   onGenPromptChange: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -20,7 +19,6 @@ export function PromptBar({
   isGenerating,
   currentJobId,
   jobStatus,
-  isJobPolling,
   onGenTypeChange,
   onGenPromptChange,
   onSubmit,

@@ -9,6 +9,7 @@ export const store = configureStore({
         auth: authReducer,
         [baseApi.reducerPath]: baseApi.reducer,
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     middleware: (getDefaultMiddleware: any) =>
         getDefaultMiddleware().concat(baseApi.middleware),
 });

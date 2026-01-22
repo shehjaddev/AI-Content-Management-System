@@ -23,8 +23,19 @@ export default function RegisterPage() {
       await registerUser({ email, password }).unwrap();
       setSuccess("Registration successful. You can now log in.");
       setTimeout(() => router.push("/login"), 800);
-    } catch (err: any) {
-      setError(err?.data?.message || err?.message || "Registration failed");
+    } catch (err: unknown) {
+      const fallbackMessage = "Registration failed";
+      if (typeof err === "object" && err !== null) {
+        const maybeError = err as {
+          data?: { message?: string };
+          message?: string;
+        };
+        setError(
+          maybeError.data?.message || maybeError.message || fallbackMessage,
+        );
+      } else {
+        setError(fallbackMessage);
+      }
     } finally {
       setLoading(false);
     }

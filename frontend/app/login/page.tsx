@@ -27,11 +27,22 @@ export default function LoginPage() {
           token: data.token,
           userId: data.user.id,
           userEmail: data.user.email,
-        })
+        }),
       );
       router.push("/");
-    } catch (err: any) {
-      setError(err?.data?.message || err?.message || "Login failed");
+    } catch (err: unknown) {
+      const fallbackMessage = "Login failed";
+      if (typeof err === "object" && err !== null) {
+        const maybeError = err as {
+          data?: { message?: string };
+          message?: string;
+        };
+        setError(
+          maybeError.data?.message || maybeError.message || fallbackMessage,
+        );
+      } else {
+        setError(fallbackMessage);
+      }
     } finally {
       setLoading(false);
     }

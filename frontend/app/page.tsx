@@ -10,9 +10,9 @@ import {
   useGetJobStatusQuery,
   useUpdateContentMutation,
 } from "@/redux/contentApi";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import type { ContentType } from "@/redux/contentTypes";
+import type { ContentItem, ContentType } from "@/redux/contentTypes";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { TopBar } from "@/components/dashboard/TopBar";
 import { ContentPanel } from "@/components/dashboard/ContentPanel";
@@ -58,30 +58,34 @@ export default function Home() {
   const [genPrompt, setGenPrompt] = useState("");
   const [genType, setGenType] = useState<ContentType>("blog_outline");
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
 
-  const {
-    data: jobStatus,
-    isFetching: isJobPolling,
-    refetch: refetchJobStatus,
-  } = useGetJobStatusQuery(currentJobId ?? "", {
-    skip: !currentJobId,
-    pollingInterval: jobUpdateMode === "socket" ? 0 : currentJobId ? 3000 : 0,
-  });
+  const { data: jobStatus, refetch: refetchJobStatus } = useGetJobStatusQuery(
+    currentJobId ?? "",
+    {
+      skip: !currentJobId,
+      pollingInterval: jobUpdateMode === "socket" ? 0 : currentJobId ? 3000 : 0,
+    },
+  );
 
   useEffect(() => {
-    const SOCKET_URL =
-      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+    const ENVIRONMENT = process.env.NEXT_PUBLIC_ENVIRONMENT;
+    const IS_PROD_ENV = ENVIRONMENT === "prod";
 
+    const SOCKET_URL = IS_PROD_ENV
+      ? "https://aicms.shehjad.dev"
+      : process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
     const s = io(SOCKET_URL);
-    setSocket(s);
+    socketRef.current = s;
 
     return () => {
       s.disconnect();
+      socketRef.current = null;
     };
   }, []);
 
   useEffect(() => {
+    const socket = socketRef.current;
     if (!socket || !currentJobId || jobUpdateMode === "polling") return;
 
     const handleJobUpdate = (payload: { jobId: string; status: string }) => {
@@ -97,32 +101,38 @@ export default function Home() {
     return () => {
       socket.off("jobUpdate", handleJobUpdate);
     };
-  }, [socket, currentJobId, jobUpdateMode, refetchContent, refetchJobStatus]);
+  }, [currentJobId, jobUpdateMode, refetchContent, refetchJobStatus]);
 
   const latestGenerated = useMemo(
     () =>
       jobStatus?.content && jobStatus.status === "completed"
         ? jobStatus.content
         : null,
-    [jobStatus]
+    [jobStatus],
   );
 
   useEffect(() => {
     if (jobStatus?.status === "completed") {
       void refetchContent();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentJobId(null);
     }
   }, [jobStatus?.status, refetchContent]);
 
   const selectedContent = useMemo(
-    () => contentItems?.find((item) => item._id === selectedId) ?? null,
-    [contentItems, selectedId]
+    () =>
+      contentItems?.find((item: ContentItem) => item._id === selectedId) ??
+      null,
+    [contentItems, selectedId],
   );
 
   useEffect(() => {
     if (selectedContent) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditTitle(selectedContent.title ?? "");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditBody(selectedContent.body ?? "");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsEditing(false);
     } else {
       setEditTitle("");
@@ -133,6 +143,7 @@ export default function Home() {
 
   useEffect(() => {
     if (latestGenerated && latestGenerated._id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedId(latestGenerated._id);
     }
   }, [latestGenerated]);
@@ -256,7 +267,6 @@ export default function Home() {
               isGenerating={isGenerating}
               currentJobId={currentJobId}
               jobStatus={jobStatus}
-              isJobPolling={isJobPolling}
               onGenTypeChange={(t) => setGenType(t)}
               onGenPromptChange={(v) => setGenPrompt(v)}
               onSubmit={handleGenerateSubmit}
